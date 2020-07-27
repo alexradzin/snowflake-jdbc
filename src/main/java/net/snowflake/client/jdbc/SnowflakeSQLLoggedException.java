@@ -17,6 +17,7 @@ import net.snowflake.client.core.SFSession;
 import net.snowflake.client.jdbc.telemetry.Telemetry;
 import net.snowflake.client.jdbc.telemetry.TelemetryData;
 import net.snowflake.client.jdbc.telemetry.TelemetryField;
+import net.snowflake.client.jdbc.telemetry.TelemetryUtil;
 import net.snowflake.client.jdbc.telemetryOOB.TelemetryEvent;
 import net.snowflake.client.jdbc.telemetryOOB.TelemetryService;
 
@@ -76,7 +77,7 @@ public class SnowflakeSQLLoggedException extends SnowflakeSQLException {
     String stackTrace = sw.toString();
     value.put("Stacktrace", stackTrace);
     value.put("Exception", ex.getClass().getSimpleName());
-    ibInstance.addLogToBatch(new TelemetryData(value, System.currentTimeMillis()));
+    ibInstance.addLogToBatch(TelemetryUtil.buildJobData(value));
     return ibInstance.sendBatchAsync();
   }
 
