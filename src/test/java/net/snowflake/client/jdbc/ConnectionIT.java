@@ -8,32 +8,13 @@ import static net.snowflake.client.core.SessionUtil.CLIENT_SESSION_KEEP_ALIVE_HE
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
+import java.security.*;
+import java.sql.*;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
@@ -49,12 +30,7 @@ import net.snowflake.client.core.QueryStatus;
 import net.snowflake.client.jdbc.telemetryOOB.TelemetryService;
 import net.snowflake.common.core.SqlState;
 import org.apache.commons.codec.binary.Base64;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
 
@@ -108,6 +84,25 @@ public class ConnectionIT extends BaseJDBCTest {
     con.close();
     assertTrue(con.isClosed());
     con.close(); // ensure no exception
+  }
+
+  @Test
+  public void testMultiStmtTransaction() throws SQLException {
+    Connection connection = getConnection();
+    Statement statement = connection.createStatement();
+    statement.execute("alter session set enable_fix_175547 = false");
+
+    statement.execute(
+        "create or replace table test_multi_txn(c1 number, c2 string)" + " as select 10, 'z'");
+
+    statement.unwrap(SnowflakeStatement.class).setParameter("MULTI_STATEMENT_COUNT", 4);
+    String multiStmtQuery =
+        "begin;\n"
+            + "delete from test_multi_txn;\n"
+            + "insert into test_multi_txn values (1, 'a'), (2, 'b');\n"
+            + "commit";
+
+    boolean hasResultSet = statement.execute(multiStmtQuery);
   }
 
   @Test

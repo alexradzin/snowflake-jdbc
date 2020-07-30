@@ -119,9 +119,9 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
 
         if (encryptionKeySize != 128 && encryptionKeySize != 192 && encryptionKeySize != 256) {
           throw new SnowflakeSQLLoggedException(
-              SqlState.INTERNAL_ERROR,
-              ErrorCode.INTERNAL_ERROR.getMessageCode(),
               session,
+              ErrorCode.INTERNAL_ERROR.getMessageCode(),
+              SqlState.INTERNAL_ERROR,
               "unsupported key size",
               encryptionKeySize);
         }
@@ -308,9 +308,9 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
         if (this.isEncrypting() && this.getEncryptionKeySize() <= 256) {
           if (key == null || iv == null) {
             throw new SnowflakeSQLLoggedException(
-                SqlState.INTERNAL_ERROR,
-                ErrorCode.INTERNAL_ERROR.getMessageCode(),
                 session,
+                ErrorCode.INTERNAL_ERROR.getMessageCode(),
+                SqlState.INTERNAL_ERROR,
                 "File metadata incomplete");
           }
 
@@ -331,9 +331,9 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
     } while (retryCount <= getMaxRetries());
 
     throw new SnowflakeSQLLoggedException(
-        SqlState.INTERNAL_ERROR,
-        ErrorCode.INTERNAL_ERROR.getMessageCode(),
         session,
+        ErrorCode.INTERNAL_ERROR.getMessageCode(),
+        SqlState.INTERNAL_ERROR,
         "Unexpected: download unsuccessful without exception!");
   }
 
@@ -382,9 +382,9 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
         if (this.isEncrypting() && this.getEncryptionKeySize() <= 256) {
           if (key == null || iv == null) {
             throw new SnowflakeSQLLoggedException(
-                SqlState.INTERNAL_ERROR,
-                ErrorCode.INTERNAL_ERROR.getMessageCode(),
                 session,
+                ErrorCode.INTERNAL_ERROR.getMessageCode(),
+                SqlState.INTERNAL_ERROR,
                 "File metadata incomplete");
           }
 
@@ -408,9 +408,9 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
     } while (retryCount < getMaxRetries());
 
     throw new SnowflakeSQLLoggedException(
-        SqlState.INTERNAL_ERROR,
-        ErrorCode.INTERNAL_ERROR.getMessageCode(),
         session,
+        ErrorCode.INTERNAL_ERROR.getMessageCode(),
+        SqlState.INTERNAL_ERROR,
         "Unexpected: download unsuccessful without exception!");
   }
 
@@ -580,10 +580,10 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
         } catch (Exception ex) {
           logger.error("Failed to encrypt input", ex);
           throw new SnowflakeSQLLoggedException(
-              ex,
+              session,
               SqlState.INTERNAL_ERROR,
               ErrorCode.INTERNAL_ERROR.getMessageCode(),
-              session,
+              ex,
               "Failed to encrypt input",
               ex.getMessage());
         }
@@ -603,19 +603,19 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
     } catch (FileNotFoundException ex) {
       logger.error("Failed to open input file", ex);
       throw new SnowflakeSQLLoggedException(
-          ex,
+          session,
           SqlState.INTERNAL_ERROR,
           ErrorCode.INTERNAL_ERROR.getMessageCode(),
-          session,
+          ex,
           "Failed to open input file",
           ex.getMessage());
     } catch (IOException ex) {
       logger.error("Failed to open input stream", ex);
       throw new SnowflakeSQLLoggedException(
-          ex,
+          session,
           SqlState.INTERNAL_ERROR,
           ErrorCode.INTERNAL_ERROR.getMessageCode(),
-          session,
+          ex,
           "Failed to open input stream",
           ex.getMessage());
     }
@@ -663,10 +663,10 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
       // If we have exceeded the max number of retries, propagate the error
       if (retryCount > azClient.getMaxRetries()) {
         throw new SnowflakeSQLLoggedException(
-            se,
+            session,
             SqlState.SYSTEM_ERROR,
             ErrorCode.AZURE_SERVICE_ERROR.getMessageCode(),
-            session,
+            se,
             operation,
             se.getErrorCode(),
             se.getHttpStatusCode(),
@@ -706,10 +706,10 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
           || SnowflakeUtil.getRootCause(ex) instanceof SocketTimeoutException) {
         if (retryCount > azClient.getMaxRetries()) {
           throw new SnowflakeSQLLoggedException(
-              ex,
+              session,
               SqlState.SYSTEM_ERROR,
               ErrorCode.IO_ERROR.getMessageCode(),
-              session,
+              ex,
               "Encountered exception during " + operation + ": " + ex.getMessage());
         } else {
           logger.debug(
@@ -720,10 +720,10 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
         }
       } else {
         throw new SnowflakeSQLLoggedException(
-            ex,
+            session,
             SqlState.SYSTEM_ERROR,
             ErrorCode.IO_ERROR.getMessageCode(),
-            session,
+            ex,
             "Encountered exception during " + operation + ": " + ex.getMessage());
       }
     }
@@ -779,10 +779,10 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
       return new SimpleEntry<String, String>(key, iv);
     } catch (Exception ex) {
       throw new SnowflakeSQLLoggedException(
-          ex,
+          session,
           SqlState.SYSTEM_ERROR,
           ErrorCode.IO_ERROR.getMessageCode(),
-          session,
+          ex,
           "Error parsing encryption data as json" + ": " + ex.getMessage());
     }
   }
