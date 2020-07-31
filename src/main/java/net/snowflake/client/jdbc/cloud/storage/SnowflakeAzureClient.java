@@ -113,7 +113,7 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
         azCreds = StorageCredentialsAnonymous.ANONYMOUS;
       }
 
-      if (encMat != null) {
+      if (stage.getIsClientSideEncrypted() && encMat != null) {
         byte[] decodedKey = Base64.decode(encMat.getQueryStageMasterKey());
         encryptionKeySize = decodedKey.length * 8;
 
@@ -155,7 +155,7 @@ public class SnowflakeAzureClient implements SnowflakeStorageClient {
   /** @return Returns true if encryption is enabled */
   @Override
   public boolean isEncrypting() {
-    return encryptionKeySize > 0;
+    return encryptionKeySize > 0 && this.stageInfo.getIsClientSideEncrypted();
   }
 
   /** @return Returns the size of the encryption key */

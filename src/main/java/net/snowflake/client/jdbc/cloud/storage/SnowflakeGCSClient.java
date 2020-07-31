@@ -102,7 +102,7 @@ public class SnowflakeGCSClient implements SnowflakeStorageClient {
   /** @return Returns true if encryption is enabled */
   @Override
   public boolean isEncrypting() {
-    return encryptionKeySize > 0;
+    return encryptionKeySize > 0 && this.stageInfo.getIsClientSideEncrypted();
   }
 
   /** @return Returns the size of the encryption key */
@@ -251,16 +251,18 @@ public class SnowflakeGCSClient implements SnowflakeStorageClient {
               outStream.flush();
               outStream.close();
               bodyStream.close();
-              for (Header header : response.getAllHeaders()) {
-                if (header
-                    .getName()
-                    .equalsIgnoreCase(GCS_METADATA_PREFIX + GCS_ENCRYPTIONDATAPROP)) {
-                  AbstractMap.SimpleEntry<String, String> encryptionData =
-                      parseEncryptionData(header.getValue());
+              if (isEncrypting()) {
+                for (Header header : response.getAllHeaders()) {
+                  if (header
+                      .getName()
+                      .equalsIgnoreCase(GCS_METADATA_PREFIX + GCS_ENCRYPTIONDATAPROP)) {
+                    AbstractMap.SimpleEntry<String, String> encryptionData =
+                        parseEncryptionData(header.getValue());
 
-                  key = encryptionData.getKey();
-                  iv = encryptionData.getValue();
-                  break;
+                    key = encryptionData.getKey();
+                    iv = encryptionData.getValue();
+                    break;
+                  }
                 }
               }
               logger.debug("Download successful");
@@ -285,12 +287,14 @@ public class SnowflakeGCSClient implements SnowflakeStorageClient {
 
           // Get the user-defined BLOB metadata
           Map<String, String> userDefinedMetadata = blob.getMetadata();
-          if (userDefinedMetadata != null) {
-            AbstractMap.SimpleEntry<String, String> encryptionData =
-                parseEncryptionData(userDefinedMetadata.get(GCS_ENCRYPTIONDATAPROP));
+          if (isEncrypting()) {
+            if (userDefinedMetadata != null) {
+              AbstractMap.SimpleEntry<String, String> encryptionData =
+                  parseEncryptionData(userDefinedMetadata.get(GCS_ENCRYPTIONDATAPROP));
 
-            key = encryptionData.getKey();
-            iv = encryptionData.getValue();
+              key = encryptionData.getKey();
+              iv = encryptionData.getValue();
+            }
           }
         }
 
@@ -395,16 +399,18 @@ public class SnowflakeGCSClient implements SnowflakeStorageClient {
             try {
               inputStream = response.getEntity().getContent();
 
-              for (Header header : response.getAllHeaders()) {
-                if (header
-                    .getName()
-                    .equalsIgnoreCase(GCS_METADATA_PREFIX + GCS_ENCRYPTIONDATAPROP)) {
-                  AbstractMap.SimpleEntry<String, String> encryptionData =
-                      parseEncryptionData(header.getValue());
+              if (isEncrypting()) {
+                for (Header header : response.getAllHeaders()) {
+                  if (header
+                      .getName()
+                      .equalsIgnoreCase(GCS_METADATA_PREFIX + GCS_ENCRYPTIONDATAPROP)) {
+                    AbstractMap.SimpleEntry<String, String> encryptionData =
+                        parseEncryptionData(header.getValue());
 
-                  key = encryptionData.getKey();
-                  iv = encryptionData.getValue();
-                  break;
+                    key = encryptionData.getKey();
+                    iv = encryptionData.getValue();
+                    break;
+                  }
                 }
               }
               logger.debug("Download successful");
@@ -425,13 +431,15 @@ public class SnowflakeGCSClient implements SnowflakeStorageClient {
 
           inputStream = new ByteArrayInputStream(blob.getContent());
 
-          // Get the user-defined BLOB metadata
-          Map<String, String> userDefinedMetadata = blob.getMetadata();
-          AbstractMap.SimpleEntry<String, String> encryptionData =
-              parseEncryptionData(userDefinedMetadata.get(GCS_ENCRYPTIONDATAPROP));
+          if (isEncrypting()) {
+            // Get the user-defined BLOB metadata
+            Map<String, String> userDefinedMetadata = blob.getMetadata();
+            AbstractMap.SimpleEntry<String, String> encryptionData =
+                parseEncryptionData(userDefinedMetadata.get(GCS_ENCRYPTIONDATAPROP));
 
-          key = encryptionData.getKey();
-          iv = encryptionData.getValue();
+            key = encryptionData.getKey();
+            iv = encryptionData.getValue();
+          }
         }
 
         if (this.isEncrypting() && this.getEncryptionKeySize() <= 256) {
