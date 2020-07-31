@@ -3,12 +3,17 @@
  */
 package net.snowflake.client.jdbc;
 
-import static net.snowflake.client.core.QueryStatus.RUNNING;
-import static net.snowflake.client.core.SessionUtil.CLIENT_SESSION_KEEP_ALIVE_HEARTBEAT_FREQUENCY;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
+import net.snowflake.client.ConditionalIgnoreRule.ConditionalIgnore;
+import net.snowflake.client.RunningNotOnTestaccount;
+import net.snowflake.client.RunningOnGithubAction;
+import net.snowflake.client.category.TestCategoryConnection;
+import net.snowflake.client.core.QueryStatus;
+import net.snowflake.client.jdbc.telemetryOOB.TelemetryService;
+import net.snowflake.common.core.SqlState;
+import org.apache.commons.codec.binary.Base64;
+import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -22,17 +27,13 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import net.snowflake.client.ConditionalIgnoreRule.ConditionalIgnore;
-import net.snowflake.client.RunningNotOnTestaccount;
-import net.snowflake.client.RunningOnGithubAction;
-import net.snowflake.client.category.TestCategoryConnection;
-import net.snowflake.client.core.QueryStatus;
-import net.snowflake.client.jdbc.telemetryOOB.TelemetryService;
-import net.snowflake.common.core.SqlState;
-import org.apache.commons.codec.binary.Base64;
-import org.junit.*;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.TemporaryFolder;
+
+import static net.snowflake.client.core.QueryStatus.RUNNING;
+import static net.snowflake.client.core.SessionUtil.CLIENT_SESSION_KEEP_ALIVE_HEARTBEAT_FREQUENCY;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.*;
 
 /** Connection integration tests */
 @Category(TestCategoryConnection.class)
@@ -84,25 +85,6 @@ public class ConnectionIT extends BaseJDBCTest {
     con.close();
     assertTrue(con.isClosed());
     con.close(); // ensure no exception
-  }
-
-  @Test
-  public void testMultiStmtTransaction() throws SQLException {
-    Connection connection = getConnection();
-    Statement statement = connection.createStatement();
-    statement.execute("alter session set enable_fix_175547 = false");
-
-    statement.execute(
-        "create or replace table test_multi_txn(c1 number, c2 string)" + " as select 10, 'z'");
-
-    statement.unwrap(SnowflakeStatement.class).setParameter("MULTI_STATEMENT_COUNT", 4);
-    String multiStmtQuery =
-        "begin;\n"
-            + "delete from test_multi_txn;\n"
-            + "insert into test_multi_txn values (1, 'a'), (2, 'b');\n"
-            + "commit";
-
-    boolean hasResultSet = statement.execute(multiStmtQuery);
   }
 
   @Test
